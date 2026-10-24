@@ -14,6 +14,12 @@ pub fn main(init: std.process.Init) !void {
             break;
         } else if (std.mem.startsWith(u8, command.?, "echo")) { 
             try stdout.interface.print("{s}\n", .{command.?[5..]});
+        } else if (std.mem.startsWith(u8, command.?, "type")) { 
+            if (std.mem.eql(u8, command.?[5..], "echo") or std.mem.eql(u8, command.?[5..], "exit") or std.mem.eql(u8, command.?[5..], "type")) {
+                try stdout.interface.print("{s} is a shell builtin\n", .{command.?[5..]});
+            } else {
+                try stdout.interface.print("{s}: not found\n", .{command.?[5..]});
+            }
         } else {
             try stdout.interface.print("{s}: command not found\n", .{command.?});
         }
