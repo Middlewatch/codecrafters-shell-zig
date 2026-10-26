@@ -25,9 +25,9 @@ pub fn main(init: std.process.Init) !void {
             } else {
                 const name = try path.checkInPath(init.io, arena.allocator(), init.environ_map, command.?[5..]);
                 if (name) |found| {
-                    try stdout.interface.print("{s} is {s}\n", .{ command.?, found });
+                    try stdout.interface.print("{s} is {s}\n", .{ command.?[5..], found });
                 } else {
-                    try stdout.interface.print("{s}: not found\n", .{command.?});
+                    try stdout.interface.print("{s}: not found\n", .{command.?[5..]});
                 }
             }
         } else {
