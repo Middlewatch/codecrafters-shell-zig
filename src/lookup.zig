@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn checkInPath(io: std.Io, allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, name: []const u8) !?[]const u8 {
+pub fn find(io: std.Io, allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, name: []const u8) !?[]const u8 {
     // since environ.get returns ?[]const u8 we have to handle the null case (useful)
     const path = environ.get("PATH") orelse return null;
     // ok now I understand that path.delimiter is what makes this work on windows and linux
@@ -15,4 +15,10 @@ pub fn checkInPath(io: std.Io, allocator: std.mem.Allocator, environ: *const std
         return full_path;
     }
     return null;
+}
+
+//This isnt necessarily the right spot for this function but im just putting it here and keeping main clean
+pub fn runProgram(io: std.Io, args: []const []const u8) !void {
+    var handle = try std.process.spawn(io, .{ .argv = args });
+    _ = try handle.wait(io);
 }
