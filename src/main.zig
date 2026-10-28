@@ -11,7 +11,7 @@ pub fn main(init: std.process.Init) !void {
 
     while (true) {
         defer _ = arena.reset(.retain_capacity);
-        var list: std.ArrayList([]const u8) = .empty; 
+        var list: std.ArrayList([]const u8) = .empty;
         // prompt
         try stdout.interface.print("$ ", .{});
         const line = try stdin.interface.takeDelimiter('\n') orelse break;
@@ -25,6 +25,7 @@ pub fn main(init: std.process.Init) !void {
                 .exit => break,
                 .echo => try builtins.echoCmd(&stdout.interface, list.items),
                 .type => try builtins.typeCmd(list.items, init.io, arena.allocator(), init.environ_map, &stdout.interface),
+                .pwd => try builtins.pwdCmd(init.io, &stdout.interface),
             }
         } else {
             if (try lookup.find(init.io, arena.allocator(), init.environ_map, list.items[0]) == null) {

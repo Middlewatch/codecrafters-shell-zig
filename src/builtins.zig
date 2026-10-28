@@ -5,6 +5,7 @@ pub const Builtin = enum {
     exit,
     echo,
     type,
+    pwd,
 
     pub fn fromString(input: []const u8) ?Builtin {
         return std.meta.stringToEnum(Builtin, input);
@@ -35,4 +36,11 @@ pub fn typeCmd(args: []const []const u8, io: std.Io, allocator: std.mem.Allocato
             try out.print("{s}: not found\n", .{args[1]});
         }
     }
+}
+
+pub fn pwdCmd(io: std.Io, out: *std.Io.Writer) !void {
+    var dir_buffer: [std.fs.max_path_bytes]u8 = undefined;
+    const len = try std.process.currentPath(io, &dir_buffer);
+    const cwd = dir_buffer[0..len];
+    try out.print("{s}\n", .{cwd});
 }
