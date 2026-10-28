@@ -6,6 +6,7 @@ pub const Builtin = enum {
     echo,
     type,
     pwd,
+    cd,
 
     pub fn fromString(input: []const u8) ?Builtin {
         return std.meta.stringToEnum(Builtin, input);
@@ -43,4 +44,13 @@ pub fn pwdCmd(io: std.Io, out: *std.Io.Writer) !void {
     const len = try std.process.currentPath(io, &dir_buffer);
     const cwd = dir_buffer[0..len];
     try out.print("{s}\n", .{cwd});
+}
+
+pub fn cdCmd(io: std.Io, out: *std.Io.Writer, args: []const []const u8) !void {
+    // eventually cd with no args will have to return to $HOME
+    if (args.len < 2) return;
+    std.process.setCurrentPath(io, args[1]) catch {
+        try out.print("cd: {s}: No such file or directory\n", .{args[1]});
+    };
+    return;
 }

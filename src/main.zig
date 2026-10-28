@@ -26,6 +26,7 @@ pub fn main(init: std.process.Init) !void {
                 .echo => try builtins.echoCmd(&stdout.interface, list.items),
                 .type => try builtins.typeCmd(list.items, init.io, arena.allocator(), init.environ_map, &stdout.interface),
                 .pwd => try builtins.pwdCmd(init.io, &stdout.interface),
+                .cd => try builtins.cdCmd(init.io, &stdout.interface, list.items),
             }
         } else {
             if (try lookup.find(init.io, arena.allocator(), init.environ_map, list.items[0]) == null) {
