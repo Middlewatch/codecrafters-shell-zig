@@ -16,7 +16,7 @@ pub fn main(init: std.process.Init) !void {
         try stdout.interface.print("$ ", .{});
         const line = try stdin.interface.takeDelimiter('\n') orelse break;
 
-        const argv = try tokenizer.tokenizeInput(arena.allocator(), line);
+        const argv = try tokenizer.tokenizeInput(arena.allocator(), init.environ_map, line);
         if (argv.len == 0) continue;
         if (builtins.Builtin.fromString(argv[0])) |command| {
             switch (command) {
