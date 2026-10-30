@@ -1,4 +1,8 @@
 const std = @import("std");
+const Mode = enum {
+    normal,
+    single_quote,
+};
 
 fn tokenizeHelper(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, word: []const u8) ![]const u8 {
     if (std.mem.eql(u8, word, "~") or std.mem.startsWith(u8, word, "~/")) {
@@ -12,10 +16,35 @@ fn tokenizeHelper(allocator: std.mem.Allocator, environ: *const std.process.Envi
 
 pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, line: []const u8) ![]const []const u8 {
     var list: std.ArrayList([]const u8) = .empty;
-    var itr = std.mem.tokenizeScalar(u8, line, ' ');
-    while (itr.next()) |input| {
-        const word = try tokenizeHelper(allocator, environ, input);
-        try list.append(allocator, word);
+    var mode: Mode = .normal;
+    var word: std.ArrayList(u8) = .empty;
+    for (line) |input| {
+        switch (mode) {
+            .normal => {
+                switch (input) {
+                    ' ' => {
+                        if (word.items.len != 0) {
+                            const finished = try word.toOwnedSlice(allocator);
+                            const expanded = try tokenizeHelper(allocator, environ, finished);
+                            try list.append(allocator, expanded);
+                        }
+                    },
+                    '\'' => mode = .single_quote,
+                    else => try word.append(allocator, input),
+                }
+            },
+            .single_quote => {
+                switch (input) {
+                    '\'' => mode = .normal,
+                    else => try word.append(allocator, input),
+                }
+            },
+        }
+    }
+    if (word.items.len != 0) {
+        const finished = try word.toOwnedSlice(allocator);
+        const expanded = try tokenizeHelper(allocator, environ, finished);
+        try list.append(allocator, expanded);
     }
     return try list.toOwnedSlice(allocator);
 }
