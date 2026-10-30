@@ -4,6 +4,7 @@ const Mode = enum {
     single_quote,
     double_quote,
     backslash_escape,
+    double_quote_escape,
 };
 
 fn tokenizeHelper(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, word: []const u8) ![]const u8 {
@@ -46,12 +47,23 @@ pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.E
             .double_quote => {
                 switch (input) {
                     '"' => mode = .normal,
+                    '\\' => mode = .double_quote_escape,
                     else => try word.append(allocator, input),
                 }
             },
             .backslash_escape => {
                 try word.append(allocator, input);
                 mode = .normal;
+            },
+            .double_quote_escape => {
+                switch (input) {
+                    '\\', '"' => try word.append(allocator, input),
+                    else => {
+                        try word.append(allocator, '\\');
+                        try word.append(allocator, input);
+                    },
+                }
+                mode = .double_quote;
             },
         }
     }
