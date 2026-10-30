@@ -7,6 +7,11 @@ const Mode = enum {
     double_quote_escape,
 };
 
+const Command = struct {
+    argv: []const []const u8,
+    stdout_path: ?[]const u8 = null,
+};
+
 fn tokenizeHelper(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, word: []const u8) ![]const u8 {
     if (std.mem.eql(u8, word, "~") or std.mem.startsWith(u8, word, "~/")) {
         // orelse return word should return the ~ literal and the kernel will handle the error if home isnt set
@@ -17,10 +22,11 @@ fn tokenizeHelper(allocator: std.mem.Allocator, environ: *const std.process.Envi
     return word;
 }
 
-pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, line: []const u8) ![]const []const u8 {
+pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, line: []const u8) !Command {
     var list: std.ArrayList([]const u8) = .empty;
     var mode: Mode = .normal;
     var word: std.ArrayList(u8) = .empty;
+    const stdout_path: ?[]const u8 = null; //flipping to variable when needed
     for (line) |input| {
         switch (mode) {
             .normal => {
@@ -72,5 +78,5 @@ pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.E
         const expanded = try tokenizeHelper(allocator, environ, finished);
         try list.append(allocator, expanded);
     }
-    return try list.toOwnedSlice(allocator);
+    return .{ .argv = try list.toOwnedSlice(allocator), .stdout_path = stdout_path };
 }
