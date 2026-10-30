@@ -2,6 +2,7 @@ const std = @import("std");
 const Mode = enum {
     normal,
     single_quote,
+    double_quote,
 };
 
 fn tokenizeHelper(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, word: []const u8) ![]const u8 {
@@ -30,12 +31,19 @@ pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.E
                         }
                     },
                     '\'' => mode = .single_quote,
+                    '"' => mode = .double_quote,
                     else => try word.append(allocator, input),
                 }
             },
             .single_quote => {
                 switch (input) {
                     '\'' => mode = .normal,
+                    else => try word.append(allocator, input),
+                }
+            },
+            .double_quote => {
+                switch (input) {
+                    '"' => mode = .normal,
                     else => try word.append(allocator, input),
                 }
             },
