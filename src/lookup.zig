@@ -18,7 +18,8 @@ pub fn find(io: std.Io, allocator: std.mem.Allocator, environ: *const std.proces
 }
 
 //This isnt necessarily the right spot for this function but im just putting it here and keeping main clean
-pub fn runProgram(io: std.Io, args: []const []const u8) !void {
-    var handle = try std.process.spawn(io, .{ .argv = args });
+pub fn runProgram(io: std.Io, args: []const []const u8, stdout_file: ?std.Io.File) !void {
+    const child_stdout: std.process.SpawnOptions.StdIo = if (stdout_file) |file| .{ .file = file } else .inherit;
+    var handle = try std.process.spawn(io, .{ .argv = args, .stdout = child_stdout });
     _ = try handle.wait(io);
 }

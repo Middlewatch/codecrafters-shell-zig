@@ -16,23 +16,34 @@ pub fn main(init: std.process.Init) !void {
         // prompt
         try stdout.interface.print("$ ", .{});
         const line = try stdin.interface.takeDelimiter('\n') orelse break;
-
         const command = try tokenizer.tokenizeInput(arena.allocator(), init.environ_map, line);
         const argv = command.argv; //because im too lazy to rename rn
+        // variables below are for the > redirect handling
+        var out: *std.Io.Writer = &stdout.interface;
+        var redirect_file: ?std.Io.File = null;
+        var file_writer: std.Io.File.Writer = undefined;
+
         if (argv.len == 0) continue;
+        if (command.stdout_path) |path| {
+            const file = try std.Io.Dir.cwd().createFile(init.io, path, .{});
+            redirect_file = file;
+            file_writer = file.writer(init.io, &.{});
+            out = &file_writer.interface;
+        }
+        defer if (redirect_file) |f| f.close(init.io);
         if (builtins.Builtin.fromString(argv[0])) |builtin| {
             switch (builtin) {
                 .exit => break,
-                .echo => try builtins.echoCmd(&stdout.interface, argv),
-                .type => try builtins.typeCmd(argv, init.io, arena.allocator(), init.environ_map, &stdout.interface),
-                .pwd => try builtins.pwdCmd(init.io, &stdout.interface),
+                .echo => try builtins.echoCmd(out, argv),
+                .type => try builtins.typeCmd(argv, init.io, arena.allocator(), init.environ_map, out),
+                .pwd => try builtins.pwdCmd(init.io, out),
                 .cd => try builtins.cdCmd(init.io, &stderr.interface, argv),
             }
         } else {
             if (try lookup.find(init.io, arena.allocator(), init.environ_map, argv[0]) == null) {
                 try stderr.interface.print("{s}: command not found\n", .{argv[0]});
             } else {
-                try lookup.runProgram(init.io, argv);
+                try lookup.runProgram(init.io, argv, redirect_file);
             }
         }
     }
