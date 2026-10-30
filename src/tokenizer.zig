@@ -12,6 +12,8 @@ const Command = struct {
     stdout_path: ?[]const u8 = null,
 };
 
+const Target = enum { argv, stdout };
+
 fn tokenizeHelper(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, word: []const u8) ![]const u8 {
     if (std.mem.eql(u8, word, "~") or std.mem.startsWith(u8, word, "~/")) {
         // orelse return word should return the ~ literal and the kernel will handle the error if home isnt set
@@ -25,8 +27,9 @@ fn tokenizeHelper(allocator: std.mem.Allocator, environ: *const std.process.Envi
 pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.Environ.Map, line: []const u8) !Command {
     var list: std.ArrayList([]const u8) = .empty;
     var mode: Mode = .normal;
+    var target: Target = .argv;
     var word: std.ArrayList(u8) = .empty;
-    const stdout_path: ?[]const u8 = null; //flipping to variable when needed
+    var stdout_path: ?[]const u8 = null; //flipping to variable when needed
     for (line) |input| {
         switch (mode) {
             .normal => {
@@ -35,12 +38,28 @@ pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.E
                         if (word.items.len != 0) {
                             const finished = try word.toOwnedSlice(allocator);
                             const expanded = try tokenizeHelper(allocator, environ, finished);
-                            try list.append(allocator, expanded);
+                            switch (target) {
+                                .argv => try list.append(allocator, expanded),
+                                .stdout => {
+                                    stdout_path = expanded;
+                                    target = .argv;
+                                },
+                            }
                         }
                     },
                     '\'' => mode = .single_quote,
                     '"' => mode = .double_quote,
                     '\\' => mode = .backslash_escape,
+                    '>' => {
+                        if (std.mem.eql(u8, word.items, "1")) {
+                            word.clearRetainingCapacity();
+                        } else if (word.items.len != 0) {
+                            const finished = try word.toOwnedSlice(allocator);
+                            const expanded = try tokenizeHelper(allocator, environ, finished);
+                            try list.append(allocator, expanded);
+                        }
+                        target = .stdout;
+                    },
                     else => try word.append(allocator, input),
                 }
             },
@@ -76,7 +95,13 @@ pub fn tokenizeInput(allocator: std.mem.Allocator, environ: *const std.process.E
     if (word.items.len != 0) {
         const finished = try word.toOwnedSlice(allocator);
         const expanded = try tokenizeHelper(allocator, environ, finished);
-        try list.append(allocator, expanded);
+        switch (target) {
+            .argv => try list.append(allocator, expanded),
+            .stdout => {
+                stdout_path = expanded;
+                target = .argv;
+            },
+        }
     }
     return .{ .argv = try list.toOwnedSlice(allocator), .stdout_path = stdout_path };
 }
